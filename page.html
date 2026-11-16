@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Radar Alpes · Bibliothèque des Sales Gosses</title>
+<style>body{font-family:Arial,sans-serif;background:#0b1c33;color:#e6edf5;margin:0;padding:16px}img{max-width:100%;background:#20324d;border-radius:10px}small{color:#9fb3c8}</style></head>
+<body><h1>Radar de précipitations</h1><p id="info">Chargement…</p><img id="img" alt="Dernière image radar"><p><small>Source : MétéoSuisse. Calque utilisé par la carte 3D de la Bibliothèque des Sales Gosses.</small></p>
+<script>fetch("radar.json?"+Date.now()).then(r=>r.json()).then(d=>{const i=d.images[0];document.getElementById("img").src=i.fichier+"?"+Date.now();document.getElementById("info").textContent="Image du "+new Date(i.heure).toLocaleString("fr-FR")+" · pluie max "+i.pluie_max+" mm/h · "+d.images.length+" images";});</script>
+</body></html>
