@@ -151,6 +151,9 @@ def reprojeter(valeurs, g):
     dedans = (i >= 0) & (i < nx) & (j >= 0) & (j < ny)
     sortie = np.full(XX.shape, np.nan)
     sortie[dedans] = valeurs[j[dedans], i[dedans]]
+    # Contrôle : le coin bas-droit calculé doit tomber sur celui donné par le fichier.
+    xr, yr = vers_proj.transform(*g["LR"])
+    print(f"   grille {nx}x{ny} · écart coin bas-droit : {abs(x0 + nx * g['xscale'] - xr):.0f} m / {abs(y0 - ny * g['yscale'] - yr):.0f} m")
     vers_lonlat = Transformer.from_crs("EPSG:3857", "EPSG:4326", always_xy=True)
     coins = [vers_lonlat.transform(x, y) for x, y in [(xmin, ymax), (xmax, ymax), (xmax, ymin), (xmin, ymin)]]
     return sortie, [[round(c[0], 5), round(c[1], 5)] for c in coins]
