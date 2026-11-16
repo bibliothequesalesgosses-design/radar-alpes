@@ -34,6 +34,12 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - run: python radar.py --sortie site ${{ inputs.explorer && '--explorer' || '' }}
+      - if: ${{ inputs.explorer }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: apercu
+          path: site
+          retention-days: 2
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -53,20 +53,16 @@ def lire_json(url, **kw):
     return r.json()
 
 
-def items_recents(heures=3):
-    """Items STAC des dernières heures (toutes pages)."""
-    debut = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=heures)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    url = f"{STAC}/collections/{COLLECTION}/items"
-    params = {"limit": 100, "datetime": f"{debut}/.."}
+def items_recents():
+    """Les fichiers sont rangés par jour (item « AAAAMMJJ-ch ») : on lit aujourd'hui et hier."""
     items = []
-    while url and len(items) < 2000:
-        page = lire_json(url, params=params)
-        items += page.get("features", [])
-        url = next((l["href"] for l in page.get("links", []) if l.get("rel") == "next"), None)
-        params = None
-    if not items:  # le filtre de date n'est pas accepté ? On prend sans filtre.
-        page = lire_json(f"{STAC}/collections/{COLLECTION}/items", params={"limit": 100})
-        items = page.get("features", [])
+    maintenant = dt.datetime.now(dt.timezone.utc)
+    for decalage in (0, 1):
+        jour = (maintenant - dt.timedelta(days=decalage)).strftime("%Y%m%d")
+        try:
+            items.append(lire_json(f"{STAC}/collections/{COLLECTION}/items/{jour}-ch"))
+        except requests.HTTPError as e:
+            print("Item", jour, "absent :", e)
     return items
 
 
