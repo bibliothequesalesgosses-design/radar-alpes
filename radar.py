@@ -29,6 +29,12 @@ NB_IMAGES = 13           # la dernière heure, une image toutes les 5 min
 ECART_MIN = 4            # minutes minimum entre deux images gardées
 LARGEUR = 1000           # largeur de l'image produite (pixels)
 
+# Grille de pluie pour les colonnes 3D : carrés réguliers en longitude/latitude sur les Alpes
+# (≈ 2,7 km × 2,8 km), valeur = pluie la plus forte du carré, seulement là où il pleut.
+GRILLE_LON = (5.40, 11.00, 0.035)
+GRILLE_LAT = (45.20, 48.00, 0.025)
+GRILLE_SEUIL = 0.3       # mm/h : en dessous, pas de colonne
+
 # Échelle de couleurs (mm/h) proche de celle de MétéoSuisse.
 PALIERS = [
     (0.1, (160, 210, 255, 150)),
@@ -159,6 +165,31 @@ def reprojeter(valeurs, g):
     return sortie, [[round(c[0], 5), round(c[1], 5)] for c in coins]
 
 
+def grille_pluie(valeurs, g):
+    """Carrés lon/lat où il pleut → {"o": [lon0, lat0], "d": [dlon, dlat], "c": [[i, j, mm/h × 10], …]}."""
+    lon0, lon1, dlon = GRILLE_LON
+    lat0, lat1, dlat = GRILLE_LAT
+    nx, ny = int(round((lon1 - lon0) / dlon)), int(round((lat1 - lat0) / dlat))
+    vers_proj = Transformer.from_crs("EPSG:4326", g["projdef"], always_xy=True)
+    x0, y0 = vers_proj.transform(*g["UL"])
+    # 3 × 3 points par carré : on garde le plus fort.
+    sous = (np.arange(3) + 0.5) / 3
+    lons = lon0 + (np.arange(nx)[:, None] + sous[None, :]).ravel() * dlon
+    lats = lat0 + (np.arange(ny)[:, None] + sous[None, :]).ravel() * dlat
+    LON, LAT = np.meshgrid(lons, lats)
+    px, py = vers_proj.transform(LON, LAT)
+    i = np.floor((px - x0) / g["xscale"]).astype(int)
+    j = np.floor((y0 - py) / g["yscale"]).astype(int)
+    hy, hx = valeurs.shape
+    dedans = (i >= 0) & (i < hx) & (j >= 0) & (j < hy)
+    v = np.full(LON.shape, np.nan)
+    v[dedans] = valeurs[j[dedans], i[dedans]]
+    v = np.nan_to_num(v, nan=0.0).reshape(ny, 3, nx, 3).max(axis=(1, 3))
+    jj, ii = np.nonzero(v >= GRILLE_SEUIL)
+    cellules = [[int(a), int(b), int(round(float(v[b, a]) * 10))] for a, b in zip(ii, jj)]
+    return {"o": [lon0, lat0], "d": [dlon, dlat], "c": cellules}
+
+
 def colorier(mmh):
     rgba = np.zeros(mmh.shape + (4,), dtype=np.uint8)
     v = np.nan_to_num(mmh, nan=-1)
@@ -211,10 +242,13 @@ def main():
                 tmp.flush()
                 valeurs, grille = lire_odim(tmp.name)
             mmh, coins_image = reprojeter(valeurs, grille)
+            nom_grille = f"radar-{len(images)}.grille.json"
+            with open(os.path.join(a.sortie, nom_grille), "w") as fg:
+                json.dump(grille_pluie(valeurs, grille), fg, separators=(",", ":"))
             coins = coins or coins_image
             nom = f"radar-{len(images)}.png"
             colorier(mmh).save(os.path.join(a.sortie, nom), optimize=True)
-            images.append({"fichier": nom, "heure": q.isoformat().replace("+00:00", "Z"),
+            images.append({"fichier": nom, "grille": nom_grille, "heure": q.isoformat().replace("+00:00", "Z"),
                            "pluie_max": None if np.all(np.isnan(mmh)) else round(float(np.nanmax(mmh)), 1)})
             print("OK", q.isoformat(), h, "max", images[-1]["pluie_max"], "mm/h")
         except Exception as e:  # une image ratée n'empêche pas les autres
