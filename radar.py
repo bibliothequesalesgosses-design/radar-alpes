@@ -25,8 +25,8 @@ from pyproj import Transformer
 
 STAC = "https://data.geo.admin.ch/api/stac/v1"
 COLLECTION = "ch.meteoschweiz.ogd-radar-precip"
-NB_IMAGES = 7            # le plus récent + 6 plus anciens
-ECART_MIN = 9            # minutes minimum entre deux images gardées
+NB_IMAGES = 13           # la dernière heure, une image toutes les 5 min
+ECART_MIN = 4            # minutes minimum entre deux images gardées
 LARGEUR = 1000           # largeur de l'image produite (pixels)
 
 # Échelle de couleurs (mm/h) proche de celle de MétéoSuisse.
