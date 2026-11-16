@@ -33,7 +33,7 @@ LARGEUR = 1000           # largeur de l'image produite (pixels)
 # (≈ 2,7 km × 2,8 km), valeur = pluie la plus forte du carré, seulement là où il pleut.
 GRILLE_LON = (5.40, 11.00, 0.035)
 GRILLE_LAT = (45.20, 48.00, 0.025)
-GRILLE_SEUIL = 0.3       # mm/h : en dessous, pas de colonne
+GRILLE_SEUIL = 0.1       # mm/h : en dessous, pas de pluie dessinée en 3D
 
 # Échelle de couleurs (mm/h) proche de celle de MétéoSuisse.
 PALIERS = [
